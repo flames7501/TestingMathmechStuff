@@ -8,23 +8,22 @@ int main()
 {
 	//Initializing a ton of values
 	srand((unsigned)time(0));
-	int turn, card, i, x, y, hand[6] = { -1, -1, -1, -1, -1, -1 };
+	int turn = 0, handsToDraw = 0, card, i, x, y, hand[6] = { -1, -1, -1, -1, -1, -1 };
 	int Exceed, Circular, Normal, Sigma, Special, HT, Veiler, Equation, Mining, SW, Nabla;
 	bool combo, smallworld, searchers, mining, circular;
 	double c;
 
 	//Checking to see if player would have 5 or 6 cards in hand
-	cout << "Going first or second? ";
-	cin >> turn;
 	while (turn != 1 and turn != 2) {
 		cout << "Going first or second (1 or 2)? ";
 		cin >> turn;
 	}
-	if (turn == 1) {
-		y = 5;
-	}
-	else {
-		y = 6;
+	y = turn + 4;
+	
+	// Set the number of simulations to run
+	while (handsToDraw <= 0) {
+		cout << "Number of hands to simulate: ";
+		cin >> handsToDraw;
 	}
 
 	//Initializes decklist; first array was to test something, second array is the important one
@@ -35,7 +34,12 @@ int main()
 		"SW", "SW", "SW", "Brick", "Brick"} };
 
 	int a, b = 0, d = 0, e = 0, g = 0, r = 0;
-	for (a = 0; a < 100000; a++) { //Start of the program to re-do it all a number of times
+	
+	// Record this point in time as the beginning of the sim
+	struct timespec timeStart, timeEnd;
+	timespec_get(&timeStart, TIME_UTC);
+	
+	for (a = 0; a < handsToDraw; a++) { //Start of the program to re-do it all a number of times
 		for (i = 0; i < y; i++) { //Drawing cards
 			card = 0 + (rand() % 39);
 			hand[i] = card;
@@ -165,6 +169,13 @@ int main()
 		}
 	}
 
+	// Record this point in time as the ending of the sim
+	timespec_get(&timeEnd, TIME_UTC);
+	
+	// Calculate time difference
+	intmax_t secDiff = (intmax_t)timeEnd.tv_sec - (intmax_t)timeStart.tv_sec;
+	long nanoDiff = (1000000000 * secDiff) + (timeEnd.tv_nsec - timeStart.tv_nsec);
+
 	//Calculates percentages
 	c = (double(b) / double(a)) * 100;
 	double f = (double(d) / double(a)) * 100;
@@ -173,6 +184,7 @@ int main()
 	double circ = (double(r) / double(a)) * 100;
 
 	//Prints results
+	cout << "The simulation took " << nanoDiff << " nanoseconds to complete.\n";
 	cout << "You were able to combo " << b << " out of " << a << " ("<< c << "%) times with no interruptions.\n";
 	cout << "You unbricked your hand using Small World " << d << " times, or " << f << "% of the time.\n";
 	cout << "You unbricked your hand using Cynet Mining " << e << " times, or " << t << "% of the time.\n";
