@@ -4,12 +4,26 @@
 #include <ctime>
 using namespace std;
 
+// Cards are now represented as numbers over strings
+#define NON_COMBO		0		// Things such as Called By
+#define CIRCULAR	 	1
+#define SIGMA 			2
+#define ADD_SUB 		4
+#define NORMAL			8
+#define NABLA 			24 		// (16 + NORMAL)
+#define EXCEED 			32
+#define MINING 			64
+#define SMALLWORLD 		128
+#define BRIDGABLE_HT 	256
+#define EQUATION 		512
+#define VEILER			1024	// spefically tracked as the HT Small World Bridge
+
 int main()
 {
 	//Initializing a ton of values
 	srand((unsigned)time(0));
-	int turn = 0, handsToDraw = 0, card, i, x, y, hand[6] = { -1, -1, -1, -1, -1, -1 };
-	int Exceed, Circular, Normal, Sigma, Special, HT, Veiler, Equation, Mining, SW, Nabla;
+	int turn = 0, handsToDraw = 0, card, i, x, y, handMask, hand[6] = { -1, -1, -1, -1, -1, -1 };
+	int numExceed, numCircular, numNormal, numSigma, numSpecial, numHT, numVeiler, numEquation, numMining, numSW, numNabla;
 	bool combo, smallworld, searchers, mining, circular;
 	double c;
 
@@ -27,19 +41,27 @@ int main()
 	}
 
 	//Initializes decklist; first array was to test something, second array is the important one
-	string deck[2][40] = { {"Exceed", "Exceed", "Circular", "Circular", "Circular", "Diameter", "Diameter", "Diameter", "Sigma", "Sigma", "Nabla", "Nabla", "Subtraction", "Subtraction", "Subtraction",
-		"Addition", "Addition", "Addition",	"Multiplication", "Ash", "Ash", "Ash", "Belle", "Belle", "Belle", "Crow", "Crow", "Crow", "Veiler", "Veiler", "Veiler", "Equation", "Mining", "Mining",
-		"Mining", "SW", "SW", "SW", "Called", "Superfactorial"}, {"Exceed", "Exceed", "Circular", "Circular", "Circular", "Normal", "Normal", "Normal", "Sigma", "Sigma", "Nabla", "Nabla", "Special",
-		"Special", "Special", "Special", "Special", "Special", "Normal", "HT", "HT", "HT", "HT", "HT", "HT", "HT", "HT", "HT", "Veiler", "Veiler", "Veiler", "Equation", "Mining", "Mining", "Mining",
-		"SW", "SW", "SW", "Brick", "Brick"} };
+	// string deck[2][40] = { {"Exceed", "Exceed", "Circular", "Circular", "Circular", "Diameter", "Diameter", "Diameter", "Sigma", "Sigma", "Nabla", "Nabla", "Subtraction", "Subtraction", "Subtraction",
+	// 	"Addition", "Addition", "Addition",	"Multiplication", "Ash", "Ash", "Ash", "Belle", "Belle", "Belle", "Crow", "Crow", "Crow", "Veiler", "Veiler", "Veiler", "Equation", "Mining", "Mining",
+	// 	"Mining", "SW", "SW", "SW", "Called", "Superfactorial"}, {"Exceed", "Exceed", "Circular", "Circular", "Circular", "Normal", "Normal", "Normal", "Sigma", "Sigma", "Nabla", "Nabla", "Special",
+	// 	"Special", "Special", "Special", "Special", "Special", "Normal", "HT", "HT", "HT", "HT", "HT", "HT", "HT", "HT", "HT", "Veiler", "Veiler", "Veiler", "Equation", "Mining", "Mining", "Mining",
+	// 	"SW", "SW", "SW", "Brick", "Brick"} };
+	int deck[40] = {CIRCULAR, CIRCULAR, CIRCULAR, EXCEED, EXCEED, SIGMA, SIGMA, NABLA, NABLA, ADD_SUB, ADD_SUB, ADD_SUB, ADD_SUB, ADD_SUB, ADD_SUB,
+					NORMAL, NORMAL, NORMAL, NORMAL, EQUATION, MINING, MINING, MINING, SMALLWORLD, SMALLWORLD, SMALLWORLD, NON_COMBO, NON_COMBO,
+					BRIDGABLE_HT, BRIDGABLE_HT, BRIDGABLE_HT, BRIDGABLE_HT, BRIDGABLE_HT, BRIDGABLE_HT, BRIDGABLE_HT, BRIDGABLE_HT, BRIDGABLE_HT,
+					VEILER, VEILER, VEILER};
 
-	int a, b = 0, d = 0, e = 0, g = 0, r = 0;
+	int a = 0, b = 0, d = 0, e = 0, g = 0, r = 0;
 	
 	// Record this point in time as the beginning of the sim
 	struct timespec timeStart, timeEnd;
 	timespec_get(&timeStart, TIME_UTC);
 	
-	for (a = 0; a < handsToDraw; a++) { //Start of the program to re-do it all a number of times
+	for (a; a < handsToDraw; a++) { //Start of the program to re-do it all a number of times
+		handMask = 0;
+		numSpecial = 0;
+		numExceed = 0;
+		numVeiler = 0;
 		for (i = 0; i < y; i++) { //Drawing cards
 			card = 0 + (rand() % 39);
 			hand[i] = card;
@@ -52,57 +74,68 @@ int main()
 					}
 				}
 			}
+
+			handMask = handMask | deck[hand[i]];
 			//cout << deck[0][hand[i]] /*<< " " << deck[1][hand[i]] << " " << card*/ << endl;
-		}
 
-		Exceed = 0;
-		Circular = 0;
-		Normal = 0;
-		Sigma = 0;
-		Special = 0;
-		HT = 0;
-		Veiler = 0;
-		Equation = 0;
-		Mining = 0;
-		SW = 0;
-		Nabla = 0;
-		for (i = 0; i < y; i++) { //Count which cards we have in hand
-			if (deck[1][hand[i]] == "Exceed") {
-				Exceed++;
-			}
-			if (deck[1][hand[i]] == "Circular") {
-				Circular++;
-			}
-			if (deck[1][hand[i]] == "Normal") {
-				Normal++;
-			}
-			if (deck[1][hand[i]] == "Sigma") {
-				Sigma++;
-			}
-			if (deck[1][hand[i]] == "Special") {
-				Special++;
-			}
-			if (deck[1][hand[i]] == "HT") {
-				HT++;
-			}
-			if (deck[1][hand[i]] == "Veiler") {
-				Veiler++;
-			}
-			if (deck[1][hand[i]] == "Equation") {
-				Equation++;
-			}
-			if (deck[1][hand[i]] == "Mining") {
-				Mining++;
-			}
-			if (deck[1][hand[i]] == "SW") {
-				SW++;
-			}
-			if (deck[1][hand[i]] == "Nabla") {
-				Nabla++;
+			if (deck[hand[i]] == SIGMA || deck[hand[i]] == ADD_SUB) {
+				numSpecial++;	
+		 	} else if (deck[hand[i]] == EXCEED) {
+				numExceed++;	
+		 	} else if (deck[hand[i]] == VEILER) {
+				numVeiler++;
 			}
 		}
+		//cout << handMask << " " << numSpecial << " " << numExceed << " " << endl;
 
-		//cout << Exceed << endl << Circular << endl << Normal << endl << Sigma << endl << Special << endl << HT << endl << Veiler << endl << Equation << endl << Mining << endl << SW << endl;
+		// numExceed = 0;
+		// numCircular = 0;
+		// numNormal = 0;
+		// numSigma = 0;
+		// numSpecial = 0;
+		// numHT = 0;
+		// numVeiler = 0;
+		// numEquation = 0;
+		// numMining = 0;
+		// numSW = 0;
+		// numNabla = 0;
+		// for (i = 0; i < y; i++) { //Count which cards we have in hand
+		// 	if (deck[1][hand[i] == "Exceed") {
+		// 		numExceed++;
+		// 	}
+		// 	if (deck[1][hand[i]] == "Circular") {
+		// 		numCircular++;
+		// 	}
+		// 	if (deck[1][hand[i]] == "Normal") {
+		// 		numNormal++;
+		// 	}
+		// 	if (deck[1][hand[i]] == "Sigma") {
+		// 		numSigma++;
+		// 	}
+		// 	if (deck[1][hand[i]] == "Special") {
+		// 		numSpecial++;
+		// 	}
+		// 	if (deck[1][hand[i]] == "HT") {
+		// 		numHT++;
+		// 	}
+		// 	if (deck[1][hand[i]] == "Veiler") {
+		// 		numVeiler++;
+		// 	}
+		// 	if (deck[1][hand[i]] == "Equation") {
+		// 		numEquation++;
+		// 	}
+		// 	if (deck[1][hand[i]] == "Mining") {
+		// 		numMining++;
+		// 	}
+		// 	if (deck[1][hand[i]] == "SW") {
+		// 		numSW++;
+		// 	}
+		// 	if (deck[1][hand[i]] == "Nabla") {
+		// 		numNabla++;
+		// 	}
+		// }		
+
+		//cout << numExceed << endl << numCircular << endl << Normal << endl << Sigma << endl << Special << endl << HT << endl << Veiler << endl << Equation << endl << Mining << endl << SW << endl;
 		combo = false;
 		smallworld = false;
 		searchers = false;
@@ -110,63 +143,85 @@ int main()
 		circular = false;
 
 		//Checking if we have a combo up, or if we unbrick with Mining/SW
-		if ((Special + Sigma) >= 2) {
-			combo = true;
-		}
-		if ((Special + Sigma) >= 1 && Normal >= 1) {
-			combo = true;
-		}
-		if ((Special + Normal + Sigma + Nabla) >= 1 && Exceed == 1) {
-			combo = true;
-		}
-		if (Circular >= 1) {
+		if ((handMask & CIRCULAR) == CIRCULAR) {
 			combo = true;
 			circular = true;
-		}
-		if ((Nabla) >= 1 && Equation == 1) {
+		} else if (numSpecial >= 2) {
 			combo = true;
-		}
-		if (SW >= 1 && HT >= 1 && Veiler != 3 && (Normal + Special + Sigma + Nabla) == 0 && combo == false && Mining == 0) {
+		} else if ((handMask & (NORMAL | SIGMA | ADD_SUB)) > NORMAL) {
 			combo = true;
-			smallworld = true;
-		}
-		if (SW >= 1 && (Normal + Special + Sigma + Nabla) >= 1 && Exceed <= 1 && combo == false && Mining == 0) {
+		} else if ((handMask & (NABLA | SIGMA | ADD_SUB)) > 0 && numExceed == 1) {
+			combo = true;
+		} else if ((handMask & (NABLA | EQUATION)) == (NABLA | EQUATION)) {
+			combo = true;
+		} else if ((handMask & (SMALLWORLD | BRIDGABLE_HT)) == (SMALLWORLD | BRIDGABLE_HT) && numVeiler != 3) {
 			combo = true;
 			smallworld = true;
 			circular = true;
-		}
-		if (Mining >= 1 && smallworld == false && combo == false) {
+		} else if ((handMask & (SMALLWORLD | NABLA | SIGMA | ADD_SUB)) > SMALLWORLD && numExceed <= 1) {
+			combo = true;
+			smallworld = true;
+			circular = true;
+		} else if ((handMask & MINING) == MINING) {
 			combo = true;
 			mining = true;
 			circular = true;
 		}
-		if (SW >= 1 && Mining >= 1 && smallworld == true) {
-			searchers = true;
-			smallworld = false;
-			combo = true;
-			circular = true;
-		}
+		// if ((numSpecial + numSigma) >= 2) {
+		// 	combo = true;
+		// }
+		// if ((numSpecial + numSigma) >= 1 && numNormal >= 1) {
+		// 	combo = true;
+		// }
+		// if ((numSpecial + numNormal + numSigma + numNabla) >= 1 && numExceed == 1) {
+		// 	combo = true;
+		// }
+		// if (numCircular >= 1) {
+		// 	combo = true;
+		// 	circular = true;
+		// }
+		// if ((numNabla) >= 1 && numEquation == 1) {
+		// 	combo = true;
+		// }
+		// if (numSW >= 1 && numHT >= 1 && numVeiler != 3 && (numNormal + numSpecial + numSigma + numNabla) == 0 && combo == false && numMining == 0) {
+		// 	combo = true;
+		// 	smallworld = true;
+		//	circular = true;
+		// }
+		// if (numSW >= 1 && (numNormal + numSpecial + numSigma + numNabla) >= 1 && numExceed <= 1 && combo == false && numMining == 0) {
+		// 	combo = true;
+		// 	smallworld = true;
+		// 	circular = true;
+		// }
+		// if (numMining >= 1 && smallworld == false && combo == false) {
+		// 	combo = true;
+		// 	mining = true;
+		// 	circular = true;
+		// }
+		// if (numSW >= 1 && numMining >= 1 && smallworld == true) {
+		// 	searchers = true;
+		// 	smallworld = false;
+		// 	combo = true;
+		// 	circular = true;
+		// }
 		
 		//Adding 1 to a certain number if we have combo
-		if (combo == true) {
+		if (combo) {
 			//cout << "\nYou've got full or some part of combo.\n";
 			b++;
-			if (smallworld == true) {
-				d++;
-			}
-			if (mining == true) {
-				e++;
-			}
-			if (searchers == true) {
-				g++;
-			}
-			if (circular == true) {
+			if (circular) {
 				r++;
+				if (smallworld) {
+					d++;
+				}
+				if (mining) {
+					e++;
+				}
 			}
 		}
-		else {
-			//cout << "\nYou're bricked, buddy.\n";
-		}
+		// else {
+		// 	//cout << "\nYou're bricked, buddy.\n";
+		// }
 	}
 
 	// Record this point in time as the ending of the sim
@@ -174,7 +229,7 @@ int main()
 	
 	// Calculate time difference
 	intmax_t secDiff = (intmax_t)timeEnd.tv_sec - (intmax_t)timeStart.tv_sec;
-	long nanoDiff = (1000000000 * secDiff) + (timeEnd.tv_nsec - timeStart.tv_nsec);
+	long long nanoDiff = (1000000000 * secDiff) + (timeEnd.tv_nsec - timeStart.tv_nsec);
 
 	//Calculates percentages
 	c = (double(b) / double(a)) * 100;
@@ -202,4 +257,4 @@ circular
 cynet mining
 small world + any handtrap thats not E veiler
 small world + any mathmech name
-any mathmech (not sigma) + equation*/
+nabla + equation*/
