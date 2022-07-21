@@ -2,181 +2,157 @@
 #include <string>
 #include <iomanip>
 #include <ctime>
+#include <random>
 using namespace std;
+
+// Cards are now represented as numbers over strings
+#define CIRC			0
+#define SIGMA			1
+#define ADD				2
+#define SUB				3
+#define DIA				4
+#define NABLA			5
+#define MULTI			6
+#define EXCEED			7
+#define BALLORD			8
+#define EQUATION		9
+#define SUPERFAC		10
+#define MINING			11
+#define SMALLWORLD		12
+#define BRIDGABLE_HT	13
+#define VEILER			14	// spefically tracked as the HT Small World Bridge
+#define NON_COMBO		15	// Things such as Called By
 
 int main()
 {
 	//Initializing a ton of values
-	srand((unsigned)time(0));
-	int turn, card, i, x, y, hand[6] = { -1, -1, -1, -1, -1, -1 };
-	int Exceed, Circular, Normal, Sigma, Special, HT, Veiler, Equation, Mining, SW, Nabla;
-	bool combo, smallworld, searchers, mining, circular;
+	// Unlike using rand() from cstdlib and %, this can guarantee a uniform distribution instead of slightly prioritizing smaller values
+	default_random_engine rng;
+	uniform_int_distribution<int> randomFromDeck(0, 39);
+
+	int turn = 0, handsToDraw = 0, card, i, x, y, hand[6] = { -1 };
+	//int numExceed, numCircular, numNormal, numSigma, numSpecial, numHT, numVeiler, numEquation, numMining, numSW, numNabla;
+	int numNormal, numSpecial, numSpecNorm;
+	int handCards[16] = { 0 };
+	bool combo, smallworld, mining, circular;
 	double c;
 
 	//Checking to see if player would have 5 or 6 cards in hand
-	cout << "Going first or second? ";
-	cin >> turn;
 	while (turn != 1 and turn != 2) {
 		cout << "Going first or second (1 or 2)? ";
 		cin >> turn;
 	}
-	if (turn == 1) {
-		y = 5;
-	}
-	else {
-		y = 6;
+	y = turn + 4;
+	
+	// Set the number of simulations to run
+	while (handsToDraw <= 0) {
+		cout << "Number of hands to simulate: ";
+		cin >> handsToDraw;
 	}
 
 	//Initializes decklist; first array was to test something, second array is the important one
-	string deck[2][40] = { {"Exceed", "Exceed", "Circular", "Circular", "Circular", "Diameter", "Diameter", "Diameter", "Sigma", "Sigma", "Nabla", "Nabla", "Subtraction", "Subtraction", "Subtraction",
-		"Addition", "Addition", "Addition",	"Multiplication", "Ash", "Ash", "Ash", "Belle", "Belle", "Belle", "Crow", "Crow", "Crow", "Veiler", "Veiler", "Veiler", "Equation", "Mining", "Mining",
-		"Mining", "SW", "SW", "SW", "Called", "Superfactorial"}, {"Exceed", "Exceed", "Circular", "Circular", "Circular", "Normal", "Normal", "Normal", "Sigma", "Sigma", "Nabla", "Nabla", "Special",
-		"Special", "Special", "Special", "Special", "Special", "Normal", "HT", "HT", "HT", "HT", "HT", "HT", "HT", "HT", "HT", "Veiler", "Veiler", "Veiler", "Equation", "Mining", "Mining", "Mining",
-		"SW", "SW", "SW", "Brick", "Brick"} };
+	// string deck[2][40] = { {"Exceed", "Exceed", "Circular", "Circular", "Circular", "Diameter", "Diameter", "Diameter", "Sigma", "Sigma", "Nabla", "Nabla", "Subtraction", "Subtraction", "Subtraction",
+	// 	"Addition", "Addition", "Addition",	"Multiplication", "Ash", "Ash", "Ash", "Belle", "Belle", "Belle", "Crow", "Crow", "Crow", "Veiler", "Veiler", "Veiler", "Equation", "Mining", "Mining",
+	// 	"Mining", "SW", "SW", "SW", "Called", "Superfactorial"}, {"Exceed", "Exceed", "Circular", "Circular", "Circular", "Normal", "Normal", "Normal", "Sigma", "Sigma", "Nabla", "Nabla", "Special",
+	// 	"Special", "Special", "Special", "Special", "Special", "Normal", "HT", "HT", "HT", "HT", "HT", "HT", "HT", "HT", "HT", "Veiler", "Veiler", "Veiler", "Equation", "Mining", "Mining", "Mining",
+	// 	"SW", "SW", "SW", "Brick", "Brick"} };
+	int deck[40] = {CIRC, CIRC, CIRC, EXCEED, EXCEED, SIGMA, SIGMA, NABLA, NABLA, ADD, ADD, ADD, SUB, SUB, SUB,
+					DIA, DIA, DIA, MULTI, EQUATION, MINING, MINING, MINING, SMALLWORLD, SMALLWORLD, SMALLWORLD, NON_COMBO, NON_COMBO,
+					BRIDGABLE_HT, BRIDGABLE_HT, BRIDGABLE_HT, BRIDGABLE_HT, BRIDGABLE_HT, BRIDGABLE_HT, BRIDGABLE_HT, BRIDGABLE_HT, BRIDGABLE_HT,
+					VEILER, VEILER, VEILER};
+	long long outOfDeckBitMask;
 
-	int a, b = 0, d = 0, e = 0, g = 0, r = 0;
-	for (a = 0; a < 100000; a++) { //Start of the program to re-do it all a number of times
+	int a = 0, b = 0, d = 0, e = 0, r = 0;
+	
+	// Record this point in time as the beginning of the sim
+	struct timespec timeStart, timeEnd;
+	timespec_get(&timeStart, TIME_UTC);
+	
+	for (a; a < handsToDraw; a++) { //Start of the program to re-do it all a number of times
+		outOfDeckBitMask = 0;
+		for (int j = 0; j < 16; j++)
+			handCards[j] = 0;
+
 		for (i = 0; i < y; i++) { //Drawing cards
-			card = 0 + (rand() % 39);
-			hand[i] = card;
-			if (i != 0) {
-				for (x = 0; x != i; x++) {
-					while (hand[i] == hand[x]) {
-						//cout << "Card #" << i << " is equal to card #" << x << ". Rerolling... " << deck[0][card] << " " << deck[1][card] << " " << card << endl;
-						card = 0 + (rand() % 39);
-						hand[i] = card;
-					}
-				}
-			}
-			//cout << deck[0][hand[i]] /*<< " " << deck[1][hand[i]] << " " << card*/ << endl;
-		}
-
-		Exceed = 0;
-		Circular = 0;
-		Normal = 0;
-		Sigma = 0;
-		Special = 0;
-		HT = 0;
-		Veiler = 0;
-		Equation = 0;
-		Mining = 0;
-		SW = 0;
-		Nabla = 0;
-		for (i = 0; i < y; i++) { //Count which cards we have in hand
-			if (deck[1][hand[i]] == "Exceed") {
-				Exceed++;
-			}
-			if (deck[1][hand[i]] == "Circular") {
-				Circular++;
-			}
-			if (deck[1][hand[i]] == "Normal") {
-				Normal++;
-			}
-			if (deck[1][hand[i]] == "Sigma") {
-				Sigma++;
-			}
-			if (deck[1][hand[i]] == "Special") {
-				Special++;
-			}
-			if (deck[1][hand[i]] == "HT") {
-				HT++;
-			}
-			if (deck[1][hand[i]] == "Veiler") {
-				Veiler++;
-			}
-			if (deck[1][hand[i]] == "Equation") {
-				Equation++;
-			}
-			if (deck[1][hand[i]] == "Mining") {
-				Mining++;
-			}
-			if (deck[1][hand[i]] == "SW") {
-				SW++;
-			}
-			if (deck[1][hand[i]] == "Nabla") {
-				Nabla++;
+			hand[i] = randomFromDeck(rng);
+			//cout << outOfDeckBitMask << "&" << (1 << hand[i]) << "=" << (outOfDeckBitMask & (1 << hand[i])) << endl;
+			if ((outOfDeckBitMask & (1 << hand[i])) == 0) {
+				outOfDeckBitMask |= (1 << hand[i]);
+				handCards[deck[hand[i]]]++;
+			} else {
+				i--; // Redo the random attempt
 			}
 		}
 
-		//cout << Exceed << endl << Circular << endl << Normal << endl << Sigma << endl << Special << endl << HT << endl << Veiler << endl << Equation << endl << Mining << endl << SW << endl;
 		combo = false;
 		smallworld = false;
-		searchers = false;
 		mining = false;
 		circular = false;
 
 		//Checking if we have a combo up, or if we unbrick with Mining/SW
-		if ((Special + Sigma) >= 2) {
-			combo = true;
-		}
-		if ((Special + Sigma) >= 1 && Normal >= 1) {
-			combo = true;
-		}
-		if ((Special + Normal + Sigma + Nabla) >= 1 && Exceed == 1) {
-			combo = true;
-		}
-		if (Circular >= 1) {
+		numSpecial = handCards[SIGMA] + handCards[ADD] + handCards[SUB];
+		numNormal = handCards[NABLA] + handCards[DIA] + handCards[MULTI];
+		numSpecNorm = numSpecial + numNormal;
+
+		if (handCards[CIRC] >= 1) {
 			combo = true;
 			circular = true;
-		}
-		if ((Nabla) >= 1 && Equation == 1) {
+		} else if (numSpecial >= 2) {
 			combo = true;
-		}
-		if (SW >= 1 && HT >= 1 && Veiler != 3 && (Normal + Special + Sigma + Nabla) == 0 && combo == false && Mining == 0) {
+		} else if (numSpecial >= 1 && numNormal >= 1) {
 			combo = true;
-			smallworld = true;
-		}
-		if (SW >= 1 && (Normal + Special + Sigma + Nabla) >= 1 && Exceed <= 1 && combo == false && Mining == 0) {
+		} else if (numSpecNorm >= 1 && handCards[EXCEED] == 1) {
+			combo = true;
+		} else if (handCards[NABLA] >= 1 && handCards[EQUATION] >= 1) {
+			combo = true;
+		} else if (handCards[SMALLWORLD] >= 1 && handCards[BRIDGABLE_HT] >= 1 && handCards[VEILER] != 3 && numSpecNorm == 0) {
 			combo = true;
 			smallworld = true;
 			circular = true;
-		}
-		if (Mining >= 1 && smallworld == false && combo == false) {
+		} else if (handCards[SMALLWORLD] >= 1 && numSpecNorm >= 1 && handCards[EXCEED] <= 1) {
+			combo = true;
+			smallworld = true;
+			circular = true;
+		} else if (handCards[MINING] >= 1) {
 			combo = true;
 			mining = true;
 			circular = true;
 		}
-		if (SW >= 1 && Mining >= 1 && smallworld == true) {
-			searchers = true;
-			smallworld = false;
-			combo = true;
-			circular = true;
-		}
 		
 		//Adding 1 to a certain number if we have combo
-		if (combo == true) {
+		if (combo) {
 			//cout << "\nYou've got full or some part of combo.\n";
 			b++;
-			if (smallworld == true) {
-				d++;
-			}
-			if (mining == true) {
-				e++;
-			}
-			if (searchers == true) {
-				g++;
-			}
-			if (circular == true) {
+			if (circular) {
 				r++;
+				if (smallworld) {
+					d++;
+				}
+				if (mining) {
+					e++;
+				}
 			}
-		}
-		else {
-			//cout << "\nYou're bricked, buddy.\n";
 		}
 	}
+
+	// Record this point in time as the ending of the sim
+	timespec_get(&timeEnd, TIME_UTC);
+	
+	// Calculate time difference
+	intmax_t secDiff = (intmax_t)timeEnd.tv_sec - (intmax_t)timeStart.tv_sec;
+	long long nanoDiff = (1000000000 * secDiff) + (timeEnd.tv_nsec - timeStart.tv_nsec);
 
 	//Calculates percentages
 	c = (double(b) / double(a)) * 100;
 	double f = (double(d) / double(a)) * 100;
 	double t = (double(e) / double(a)) * 100;
-	double u = (double(g) / double(a)) * 100;
 	double circ = (double(r) / double(a)) * 100;
 
 	//Prints results
+	cout << "The simulation took " << nanoDiff << " nanoseconds to complete.\n";
 	cout << "You were able to combo " << b << " out of " << a << " ("<< c << "%) times with no interruptions.\n";
 	cout << "You unbricked your hand using Small World " << d << " times, or " << f << "% of the time.\n";
 	cout << "You unbricked your hand using Cynet Mining " << e << " times, or " << t << "% of the time.\n";
-	cout << "You unbricked with Small World and Cynet Mining at the same time " << g << " times, or " << u << "% of the time.\n";
 	cout << "Your starter (whether by searching or having it in hand) was Circular " << r << " times, or " << circ << "% of the time.\n";
 
 	system("pause");
@@ -190,4 +166,4 @@ circular
 cynet mining
 small world + any handtrap thats not E veiler
 small world + any mathmech name
-any mathmech (not sigma) + equation*/
+nabla + equation*/
